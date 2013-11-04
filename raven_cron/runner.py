@@ -20,6 +20,11 @@ parser.add_argument(
     help='Sentry server address',
 )
 parser.add_argument(
+    '--always',
+    action='store_true',
+    help='Report results to sentry even if the command exits successfully.'
+)
+parser.add_argument(
     '--version',
     action='version',
     version=VERSION,
@@ -36,12 +41,13 @@ def run(args=argv[1:]):
     runner.run()
 
 class CommandReporter(object):
-    def __init__(self, cmd, dsn):
+    def __init__(self, cmd, dsn, always):
         if len(cmd) <= 1:
             cmd = cmd[0]
 
         self.dsn = dsn
         self.command = cmd
+        self.always = always
         self.client = None
 
     def run(self):
@@ -50,7 +56,7 @@ class CommandReporter(object):
 
         exit_status = call(self.command, stdout=buf, stderr=buf, shell=True)
         
-        if exit_status > 0:
+        if exit_status > 0 or always == True:
             elapsed = int((time() - start) * 1000)
             self.report_fail(exit_status, buf, elapsed)
 
@@ -70,7 +76,10 @@ class CommandReporter(object):
             buf.seek(-(MAX_MESSAGE_SIZE-3), SEEK_END)
             last_lines = '...' + buf.read()
 
-        message="Command \"%s\" failed" % (self.command,)
+        if always == False:
+            message="Command \"%s\" failed" % (self.command,)
+        else:
+            message="Notification From Process"
 
         if self.client is None:
             self.client = Client(dsn=self.dsn)
