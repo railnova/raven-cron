@@ -2,8 +2,9 @@ Raven-cron : error reporting for cron commands
 ================================================
 
 Raven-cron is a small command-line wrapper that reports errors to
-[Sentry](http://getsentry.com) if the script exits with an exit status other
-than zero.
+[Sentry](http://getsentry.com). Reports can happen if the script 
+exits with an exit status other than zero, or for any output from
+the run command.
 
 Install
 -------
