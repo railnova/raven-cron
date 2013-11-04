@@ -25,6 +25,14 @@ parser.add_argument(
     help='Report results to sentry even if the command exits successfully.'
 )
 parser.add_argument(
+    '--logger'
+    default='cron'
+)
+parser.add_argument(
+    '--description'
+    default=None
+)
+parser.add_argument(
     '--version',
     action='version',
     version=VERSION,
@@ -41,7 +49,7 @@ def run(args=argv[1:]):
     runner.run()
 
 class CommandReporter(object):
-    def __init__(self, cmd, dsn, always):
+    def __init__(self, cmd, dsn, always, logger, description):
         if len(cmd) <= 1:
             cmd = cmd[0]
 
@@ -49,6 +57,8 @@ class CommandReporter(object):
         self.command = cmd
         self.always = always
         self.client = None
+        self.logger = logger
+        self.description = description
 
     def run(self):
         buf = TemporaryFile()
@@ -56,7 +66,7 @@ class CommandReporter(object):
 
         exit_status = call(self.command, stdout=buf, stderr=buf, shell=True)
         
-        if exit_status > 0 or always == True:
+        if exit_status > 0 or self.always == True:
             elapsed = int((time() - start) * 1000)
             self.report_fail(exit_status, buf, elapsed)
 
@@ -76,10 +86,10 @@ class CommandReporter(object):
             buf.seek(-(MAX_MESSAGE_SIZE-3), SEEK_END)
             last_lines = '...' + buf.read()
 
-        if always == False:
+        if self.description:
             message="Command \"%s\" failed" % (self.command,)
         else:
-            message="Notification From Process"
+            message=self.description
 
         if self.client is None:
             self.client = Client(dsn=self.dsn)
@@ -87,7 +97,7 @@ class CommandReporter(object):
         self.client.captureMessage(
             message,
             data={
-                'logger': 'cron',
+                'logger': self.logger,
             },
             extra={
                 'command': self.command,
