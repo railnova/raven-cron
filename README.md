@@ -8,7 +8,7 @@ than zero.
 Install
 -------
 
-`pip install raven-cron`
+`python setup.py install`
 
 Usage
 -----
