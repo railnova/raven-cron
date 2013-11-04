@@ -25,11 +25,11 @@ parser.add_argument(
     help='Report results to sentry even if the command exits successfully.'
 )
 parser.add_argument(
-    '--logger'
+    '--logger',
     default='cron'
 )
 parser.add_argument(
-    '--description'
+    '--description',
     default=None
 )
 parser.add_argument(
