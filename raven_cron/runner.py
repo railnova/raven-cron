@@ -87,9 +87,9 @@ class CommandReporter(object):
             last_lines = '...' + buf.read()
 
         if self.description:
-            message="Command \"%s\" failed" % (self.command,)
-        else:
             message=self.description
+        else:
+            message="Command \"%s\" failed" % (self.command,)
 
         if self.client is None:
             self.client = Client(dsn=self.dsn)
