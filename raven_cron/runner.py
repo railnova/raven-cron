@@ -3,11 +3,12 @@ from raven import Client
 from subprocess import call
 from tempfile import TemporaryFile
 from argparse import ArgumentParser
+import argparse
 from sys import argv
 from time import time
 from .version import VERSION
 
-MAX_MESSAGE_SIZE = 1000
+MAX_MESSAGE_SIZE = 4096
 
 parser = ArgumentParser(
     description='Wraps commands and reports failing ones to sentry.',
@@ -39,7 +40,7 @@ parser.add_argument(
 )
 parser.add_argument(
     'cmd',
-    nargs='+',
+    nargs=argparse.REMAINDER,
     help='The command to run',
 )
 
@@ -50,11 +51,9 @@ def run(args=argv[1:]):
 
 class CommandReporter(object):
     def __init__(self, cmd, dsn, always, logger, description):
-        if len(cmd) <= 1:
-            cmd = cmd[0]
 
         self.dsn = dsn
-        self.command = cmd
+        self.command = " ".join(cmd)
         self.always = always
         self.client = None
         self.logger = logger
