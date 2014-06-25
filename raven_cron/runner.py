@@ -4,11 +4,12 @@ from raven import Client
 from subprocess import call
 from tempfile import TemporaryFile
 from argparse import ArgumentParser
+import argparse
 from sys import argv
 from time import time
 from .version import VERSION
 
-MAX_MESSAGE_SIZE = 1000
+MAX_MESSAGE_SIZE = 4096
 
 parser = ArgumentParser(
     description='Wraps commands and reports failing ones to sentry.',
@@ -21,13 +22,26 @@ parser.add_argument(
     help='Sentry server address',
 )
 parser.add_argument(
+    '--always',
+    action='store_true',
+    help='Report results to sentry even if the command exits successfully.'
+)
+parser.add_argument(
+    '--logger',
+    default='cron'
+)
+parser.add_argument(
+    '--description',
+    default=None
+)
+parser.add_argument(
     '--version',
     action='version',
     version=VERSION,
 )
 parser.add_argument(
     'cmd',
-    nargs='+',
+    nargs=argparse.REMAINDER,
     help='The command to run',
 )
 
@@ -62,13 +76,14 @@ def run(args=argv[1:]):
     runner.run()
 
 class CommandReporter(object):
-    def __init__(self, cmd, dsn):
-        if len(cmd) <= 1:
-            cmd = cmd[0]
+    def __init__(self, cmd, dsn, always, logger, description):
 
         self.dsn = dsn
-        self.command = cmd
+        self.command = " ".join(cmd)
+        self.always = always
         self.client = None
+        self.logger = logger
+        self.description = description
 
     def run(self):
         buf = TemporaryFile()
@@ -76,7 +91,7 @@ class CommandReporter(object):
 
         exit_status = call(self.command, stdout=buf, stderr=buf, shell=True)
         
-        if exit_status > 0:
+        if exit_status > 0 or self.always == True:
             elapsed = int((time() - start) * 1000)
             self.report_fail(exit_status, buf, elapsed)
 
@@ -96,7 +111,10 @@ class CommandReporter(object):
             buf.seek(-(MAX_MESSAGE_SIZE-3), SEEK_END)
             last_lines = '...' + buf.read()
 
-        message="Command \"%s\" failed" % (self.command,)
+        if self.description:
+            message=self.description
+        else:
+            message="Command \"%s\" failed" % (self.command,)
 
         if self.client is None:
             self.client = Client(dsn=self.dsn)
@@ -104,7 +122,7 @@ class CommandReporter(object):
         self.client.captureMessage(
             message,
             data={
-                'logger': 'cron',
+                'logger': self.logger,
             },
             extra={
                 'command': self.command,
