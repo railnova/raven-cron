@@ -5,7 +5,7 @@ from subprocess import call
 from tempfile import TemporaryFile
 from argparse import ArgumentParser
 import argparse
-from sys import argv
+from sys import argv, stderr
 from time import time
 from .version import VERSION
 
@@ -99,6 +99,9 @@ class CommandReporter(object):
         
     def report_fail(self, exit_status, buf, elapsed):
         if self.dsn is None:
+            print >>stderr, "No DSN for raven-cron configured, cannot report failure of script:", self.command
+            buf.seek(0)
+            print >>stderr, buf.read()
             return
 
         # Hack to get the file size since the tempfile doesn't exist anymore
