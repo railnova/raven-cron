@@ -116,8 +116,10 @@ class CommandReporter(object):
 
         if self.description:
             message=self.description
-        else:
+        elif exit_status != 0:
             message="Command \"%s\" failed" % (self.command,)
+        else:
+            message="Command \"%s\" report" % (self.command,)
 
         if self.client is None:
             self.client = Client(dsn=self.dsn)
